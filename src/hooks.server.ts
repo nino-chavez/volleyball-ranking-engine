@@ -68,7 +68,7 @@ const authGuardHandle: Handle = async ({ event, resolve }) => {
 	}
 
 	// Protect app pages -- redirect to login
-	if ((path.startsWith('/import') || path.startsWith('/ranking')) && !session) {
+	if ((path.startsWith('/import') || path.startsWith('/ranking') || path.startsWith('/settings')) && !session) {
 		redirect(303, '/auth/login');
 	}
 

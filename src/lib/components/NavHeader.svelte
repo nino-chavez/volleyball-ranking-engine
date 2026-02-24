@@ -12,6 +12,7 @@
 		{ href: '/import', label: 'Import' },
 		{ href: '/ranking', label: 'Rankings' },
 		{ href: '/ranking/weights', label: 'Weights' },
+		{ href: '/settings', label: 'Settings' },
 	];
 
 	function isActive(href: string): boolean {

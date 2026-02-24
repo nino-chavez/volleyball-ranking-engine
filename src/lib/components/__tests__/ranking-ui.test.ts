@@ -52,11 +52,11 @@ const sampleResults: NormalizedTeamResult[] = [
   },
 ];
 
-const sampleTeams = new Map([
-  ['team-a', 'Alpha Wolves'],
-  ['team-b', 'Bravo Bolts'],
-  ['team-c', 'Charlie Cobras'],
-]);
+const sampleTeams: Record<string, { name: string; region: string }> = {
+  'team-a': { name: 'Alpha Wolves', region: 'Midwest' },
+  'team-b': { name: 'Bravo Bolts', region: 'East' },
+  'team-c': { name: 'Charlie Cobras', region: 'West' },
+};
 
 describe('RankingResultsTable', () => {
   afterEach(() => cleanup());
@@ -65,11 +65,11 @@ describe('RankingResultsTable', () => {
       props: { results: sampleResults, teams: sampleTeams },
     });
 
-    // Check header text
-    expect(screen.getByText('Rank')).toBeTruthy();
-    expect(screen.getByText('Team Name')).toBeTruthy();
+    // Check header text (Rank column has sort arrow appended by default: "Rank ↑")
+    expect(screen.getByText(/^Rank\s/)).toBeTruthy();
+    expect(screen.getByText(/^Team Name/)).toBeTruthy();
     expect(screen.getByText('Colley Rating')).toBeTruthy();
-    expect(screen.getByText('AggRating')).toBeTruthy();
+    expect(screen.getByText(/^AggRating/)).toBeTruthy();
 
     // Check row count: 3 team names should be present
     expect(screen.getByText('Alpha Wolves')).toBeTruthy();
@@ -95,7 +95,7 @@ describe('RankingResultsTable', () => {
 
   it('displays "No results" message when passed an empty array', () => {
     render(RankingResultsTable, {
-      props: { results: [], teams: new Map() },
+      props: { results: [], teams: {} },
     });
 
     expect(screen.getByText('No results')).toBeTruthy();

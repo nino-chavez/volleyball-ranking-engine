@@ -7,6 +7,7 @@
     placeholder?: string;
     disabled?: boolean;
     error?: string;
+    onchange?: () => void;
   }
 
   let {
@@ -17,6 +18,7 @@
     placeholder,
     disabled = false,
     error,
+    onchange,
   }: Props = $props();
 </script>
 
@@ -28,6 +30,7 @@
     {id}
     bind:value
     {disabled}
+    {onchange}
     class="block w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary focus:border-accent focus:ring-1 focus:ring-accent disabled:cursor-not-allowed disabled:bg-surface-alt"
   >
     {#if placeholder}

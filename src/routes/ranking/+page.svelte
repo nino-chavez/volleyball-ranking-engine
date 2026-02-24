@@ -7,6 +7,7 @@
   import Banner from '$lib/components/Banner.svelte';
   import FreshnessIndicator from '$lib/components/FreshnessIndicator.svelte';
   import { AgeGroup } from '$lib/schemas/enums.js';
+  import { formatTimestamp } from '$lib/utils/format.js';
   import type { NormalizedTeamResult } from '$lib/ranking/types.js';
 
   /** Server data: list of seasons */
@@ -26,7 +27,7 @@
 
   // --- Results State ---
   let rankingResults = $state<NormalizedTeamResult[]>([]);
-  let teamNames = $state<Map<string, string>>(new Map());
+  let teams = $state<Record<string, { name: string; region: string }>>({});
   let seedingFactors = $state<Record<string, {
     win_pct: number;
     best_national_finish: number | null;
@@ -39,17 +40,29 @@
   } | null>(null);
   let errorMessage = $state('');
 
+  // --- Run History State ---
+  let previousRuns = $state<Array<{ id: string; ran_at: string; teams_ranked: number }>>([]);
+  let selectedRunId = $state('');
+  let loadingRun = $state(false);
+
   // --- Available Options ---
   const ageGroupOptions = AgeGroup.options;
 
   const seasonSelectOptions = $derived(
-    data.seasons.map((s) => ({ value: s.id, label: s.name })),
+    data.seasons.map((s: { id: string; name: string }) => ({ value: s.id, label: s.name })),
   );
 
   const ageGroupSelectOptions = ageGroupOptions.map((ag) => ({
     value: ag,
     label: ag,
   }));
+
+  const runSelectOptions = $derived(
+    previousRuns.map((r) => ({
+      value: r.id,
+      label: `${formatTimestamp(r.ran_at)} \u2014 ${r.teams_ranked} teams`,
+    })),
+  );
 
   // --- Derived State ---
   let contextReady = $derived(
@@ -80,26 +93,18 @@
       }
 
       runSummary = result.data;
+      selectedRunId = result.data.ranking_run_id;
 
       // Extract seeding factors from the run response
       if (result.data.seeding_factors) {
         seedingFactors = result.data.seeding_factors;
       }
 
-      // Fetch full results using the ranking_run_id
-      const resultsResponse = await fetch(
-        `/api/ranking/results?ranking_run_id=${result.data.ranking_run_id}`,
-      );
+      // Fetch full results
+      await loadRunResults(result.data.ranking_run_id);
 
-      if (resultsResponse.ok) {
-        const resultsData = await resultsResponse.json();
-        if (resultsData.success) {
-          rankingResults = resultsData.data.results;
-          teamNames = new Map(
-            Object.entries(resultsData.data.teams) as [string, string][],
-          );
-        }
-      }
+      // Fetch run history
+      await loadRunHistory();
 
       step = 'results';
     } catch (err) {
@@ -111,13 +116,68 @@
     }
   }
 
+  async function loadRunResults(runId: string) {
+    const resultsResponse = await fetch(
+      `/api/ranking/results?ranking_run_id=${runId}`,
+    );
+
+    if (resultsResponse.ok) {
+      const resultsData = await resultsResponse.json();
+      if (resultsData.success) {
+        rankingResults = resultsData.data.results;
+        teams = resultsData.data.teams;
+      }
+    }
+  }
+
+  async function loadRunHistory() {
+    if (!selectedSeasonId) return;
+
+    const response = await fetch(
+      `/api/ranking/runs?season_id=${selectedSeasonId}`,
+    );
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data.success) {
+        previousRuns = data.data.runs;
+      }
+    }
+  }
+
+  async function handleRunSelect() {
+    if (!selectedRunId || loadingRun) return;
+
+    loadingRun = true;
+    try {
+      await loadRunResults(selectedRunId);
+
+      // Update run summary
+      const run = previousRuns.find((r) => r.id === selectedRunId);
+      if (run) {
+        runSummary = {
+          ranking_run_id: run.id,
+          teams_ranked: run.teams_ranked,
+          ran_at: run.ran_at,
+        };
+      }
+
+      // Clear seeding factors for historical runs (only available from run API)
+      seedingFactors = {};
+    } finally {
+      loadingRun = false;
+    }
+  }
+
   function handleReset() {
     step = 'idle';
     rankingResults = [];
-    teamNames = new Map();
+    teams = {};
     seedingFactors = {};
     runSummary = null;
     errorMessage = '';
+    previousRuns = [];
+    selectedRunId = '';
   }
 </script>
 
@@ -146,7 +206,30 @@
       </Banner>
     {/if}
 
-    <RankingResultsTable results={rankingResults} teams={teamNames} {seedingFactors} />
+    <!-- Run History Selector -->
+    {#if previousRuns.length > 1}
+      <div class="flex items-end gap-4">
+        <div class="w-full max-w-md">
+          <Select
+            label="Previous Runs"
+            id="run-history-select"
+            options={runSelectOptions}
+            bind:value={selectedRunId}
+            onchange={handleRunSelect}
+          />
+        </div>
+        {#if loadingRun}
+          <p class="pb-2 text-sm text-text-muted">Loading...</p>
+        {/if}
+      </div>
+    {/if}
+
+    <RankingResultsTable
+      results={rankingResults}
+      {teams}
+      {seedingFactors}
+      rankingRunId={runSummary?.ranking_run_id ?? ''}
+    />
 
     <div class="flex justify-end">
       <Button variant="primary" onclick={handleReset}>Run Again</Button>

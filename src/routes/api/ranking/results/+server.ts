@@ -26,16 +26,16 @@ export const GET: RequestHandler = async ({ url }) => {
       return json({ success: false, error: error.message }, { status: 500 });
     }
 
-    // Fetch team names for all team_ids in results
+    // Fetch team names and regions for all team_ids in results
     const teamIds = (results ?? []).map((r) => r.team_id);
     const { data: teamRows } = await supabaseServer
       .from('teams')
-      .select('id, name')
+      .select('id, name, region')
       .in('id', teamIds.length > 0 ? teamIds : ['__none__']);
 
-    const teamsMap: Record<string, string> = {};
+    const teamsMap: Record<string, { name: string; region: string }> = {};
     for (const team of teamRows ?? []) {
-      teamsMap[team.id] = team.name;
+      teamsMap[team.id] = { name: team.name, region: team.region };
     }
 
     return json({

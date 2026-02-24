@@ -34,9 +34,12 @@ describe('RankingResultsTable - Tier Colors', () => {
       makeResult({ team_id: 't3', agg_rank: 20, agg_rating: 50 }),
       makeResult({ team_id: 't4', agg_rank: 35, agg_rating: 20 }),
     ];
-    const teams = new Map([
-      ['t1', 'Alpha'], ['t2', 'Bravo'], ['t3', 'Charlie'], ['t4', 'Delta'],
-    ]);
+    const teams: Record<string, { name: string; region: string }> = {
+      't1': { name: 'Alpha', region: '' },
+      't2': { name: 'Bravo', region: '' },
+      't3': { name: 'Charlie', region: '' },
+      't4': { name: 'Delta', region: '' },
+    };
 
     const { container } = render(RankingResultsTable, { props: { results, teams } });
     const rows = container.querySelectorAll('tbody tr');
@@ -54,7 +57,10 @@ describe('RankingResultsTable - RankBadge', () => {
       makeResult({ team_id: 't1', agg_rank: 1, agg_rating: 95 }),
       makeResult({ team_id: 't2', agg_rank: 15, agg_rating: 50 }),
     ];
-    const teams = new Map([['t1', 'Alpha'], ['t2', 'Bravo']]);
+    const teams: Record<string, { name: string; region: string }> = {
+      't1': { name: 'Alpha', region: '' },
+      't2': { name: 'Bravo', region: '' },
+    };
 
     const { container } = render(RankingResultsTable, { props: { results, teams } });
     const badges = container.querySelectorAll('span.tabular-nums');
@@ -72,7 +78,9 @@ describe('RankingResultsTable - Semantic Markup', () => {
     const results: NormalizedTeamResult[] = [
       makeResult({ team_id: 't1', agg_rank: 1, agg_rating: 95 }),
     ];
-    const teams = new Map([['t1', 'Alpha']]);
+    const teams: Record<string, { name: string; region: string }> = {
+      't1': { name: 'Alpha', region: '' },
+    };
 
     const { container } = render(RankingResultsTable, { props: { results, teams } });
 

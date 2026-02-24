@@ -1,6 +1,7 @@
 <script lang="ts">
   import RankingResultsTable from '$lib/components/RankingResultsTable.svelte';
   import OverridePanel from '$lib/components/OverridePanel.svelte';
+  import ExportDropdown from '$lib/components/ExportDropdown.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Card from '$lib/components/Card.svelte';
   import Select from '$lib/components/Select.svelte';
@@ -9,6 +10,8 @@
   import FreshnessIndicator from '$lib/components/FreshnessIndicator.svelte';
   import { AgeGroup } from '$lib/schemas/enums.js';
   import { formatTimestamp } from '$lib/utils/format.js';
+  import { assembleExportRows } from '$lib/export/export-data.js';
+  import type { ExportMetadata } from '$lib/export/types.js';
   import type { NormalizedTeamResult } from '$lib/ranking/types.js';
   import type { OverrideData } from '$lib/ranking/table-utils.js';
 
@@ -86,6 +89,26 @@
   const panelExistingOverride = $derived(
     panelTeamId && overrides[panelTeamId] ? overrides[panelTeamId] : null,
   );
+
+  // --- Export Derived State ---
+  const exportRows = $derived(
+    step === 'results'
+      ? assembleExportRows(rankingResults, teams, seedingFactors, overrides, { includeAlgorithmBreakdowns: true })
+      : [],
+  );
+
+  const selectedSeasonName = $derived(
+    data.seasons.find((s: { id: string; name: string }) => s.id === selectedSeasonId)?.name ?? '',
+  );
+
+  const exportMetadata: ExportMetadata = $derived({
+    season_name: selectedSeasonName,
+    age_group: selectedAgeGroup,
+    ran_at: runSummary?.ran_at ?? '',
+    teams_ranked: runSummary?.teams_ranked ?? 0,
+    run_status: runStatus,
+    exported_at: new Date().toISOString(),
+  });
 
   // --- Actions ---
   async function handleRunRankings() {
@@ -350,8 +373,15 @@
       onoverrideclick={handleOverrideClick}
     />
 
-    <!-- Finalize / Run Again controls -->
+    <!-- Export / Finalize / Run Again controls -->
     <div class="flex items-center justify-end gap-3">
+      <ExportDropdown
+        rows={exportRows}
+        metadata={exportMetadata}
+        {overrides}
+        {teams}
+        ageGroup={selectedAgeGroup}
+      />
       {#if runStatus === 'draft' && hasOverrides}
         <Button
           variant="primary"

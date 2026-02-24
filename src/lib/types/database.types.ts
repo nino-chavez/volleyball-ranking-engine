@@ -281,6 +281,7 @@ export interface Database {
           ran_at: string;
           description: string | null;
           parameters: Json | null;
+          status: 'draft' | 'finalized';
           created_at: string;
           updated_at: string;
         };
@@ -290,6 +291,7 @@ export interface Database {
           ran_at?: string;
           description?: string | null;
           parameters?: Json | null;
+          status?: 'draft' | 'finalized';
           created_at?: string;
           updated_at?: string;
         };
@@ -299,6 +301,7 @@ export interface Database {
           ran_at?: string;
           description?: string | null;
           parameters?: Json | null;
+          status?: 'draft' | 'finalized';
           created_at?: string;
           updated_at?: string;
         };
@@ -380,6 +383,57 @@ export interface Database {
           },
           {
             foreignKeyName: 'ranking_results_team_id_fkey';
+            columns: ['team_id'];
+            isOneToOne: false;
+            referencedRelation: 'teams';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      ranking_overrides: {
+        Row: {
+          id: string;
+          ranking_run_id: string;
+          team_id: string;
+          original_rank: number;
+          final_rank: number;
+          justification: string;
+          committee_member: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          ranking_run_id: string;
+          team_id: string;
+          original_rank: number;
+          final_rank: number;
+          justification: string;
+          committee_member: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          ranking_run_id?: string;
+          team_id?: string;
+          original_rank?: number;
+          final_rank?: number;
+          justification?: string;
+          committee_member?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: 'ranking_overrides_ranking_run_id_fkey';
+            columns: ['ranking_run_id'];
+            isOneToOne: false;
+            referencedRelation: 'ranking_runs';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'ranking_overrides_team_id_fkey';
             columns: ['team_id'];
             isOneToOne: false;
             referencedRelation: 'teams';

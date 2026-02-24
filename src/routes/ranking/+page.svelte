@@ -1,5 +1,6 @@
 <script lang="ts">
   import RankingResultsTable from '$lib/components/RankingResultsTable.svelte';
+  import OverridePanel from '$lib/components/OverridePanel.svelte';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Card from '$lib/components/Card.svelte';
   import Select from '$lib/components/Select.svelte';
@@ -9,6 +10,7 @@
   import { AgeGroup } from '$lib/schemas/enums.js';
   import { formatTimestamp } from '$lib/utils/format.js';
   import type { NormalizedTeamResult } from '$lib/ranking/types.js';
+  import type { OverrideData } from '$lib/ranking/table-utils.js';
 
   /** Server data: list of seasons */
   let { data } = $props<{
@@ -40,8 +42,19 @@
   } | null>(null);
   let errorMessage = $state('');
 
+  // --- Override State ---
+  let overrides = $state<Record<string, OverrideData>>({});
+  let runStatus = $state<'draft' | 'finalized'>('draft');
+
+  // --- Override Panel State ---
+  let panelOpen = $state(false);
+  let panelTeamId = $state('');
+  let panelTeamName = $state('');
+  let panelOriginalRank = $state(0);
+  let finalizingRun = $state(false);
+
   // --- Run History State ---
-  let previousRuns = $state<Array<{ id: string; ran_at: string; teams_ranked: number }>>([]);
+  let previousRuns = $state<Array<{ id: string; ran_at: string; teams_ranked: number; status: 'draft' | 'finalized' }>>([]);
   let selectedRunId = $state('');
   let loadingRun = $state(false);
 
@@ -60,13 +73,18 @@
   const runSelectOptions = $derived(
     previousRuns.map((r) => ({
       value: r.id,
-      label: `${formatTimestamp(r.ran_at)} \u2014 ${r.teams_ranked} teams`,
+      label: `${formatTimestamp(r.ran_at)} \u2014 ${r.teams_ranked} teams${r.status === 'finalized' ? ' (Finalized)' : ''}`,
     })),
   );
 
   // --- Derived State ---
   let contextReady = $derived(
     selectedSeasonId !== '' && selectedAgeGroup !== '',
+  );
+
+  const hasOverrides = $derived(Object.keys(overrides).length > 0);
+  const panelExistingOverride = $derived(
+    panelTeamId && overrides[panelTeamId] ? overrides[panelTeamId] : null,
   );
 
   // --- Actions ---
@@ -126,6 +144,8 @@
       if (resultsData.success) {
         rankingResults = resultsData.data.results;
         teams = resultsData.data.teams;
+        overrides = resultsData.data.overrides ?? {};
+        runStatus = resultsData.data.run_status ?? 'draft';
       }
     }
   }
@@ -178,6 +198,96 @@
     errorMessage = '';
     previousRuns = [];
     selectedRunId = '';
+    overrides = {};
+    runStatus = 'draft';
+    panelOpen = false;
+  }
+
+  // --- Override Panel Handlers ---
+  function handleOverrideClick(teamId: string, teamName: string, aggRank: number) {
+    panelTeamId = teamId;
+    panelTeamName = teamName;
+    panelOriginalRank = aggRank;
+    panelOpen = true;
+  }
+
+  async function handleOverrideSave(formData: { final_rank: number; justification: string; committee_member: string }) {
+    if (!runSummary) return;
+
+    const response = await fetch('/api/ranking/overrides', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ranking_run_id: runSummary.ranking_run_id,
+        team_id: panelTeamId,
+        original_rank: panelOriginalRank,
+        final_rank: formData.final_rank,
+        justification: formData.justification,
+        committee_member: formData.committee_member,
+      }),
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      if (result.success) {
+        // Update local overrides state
+        overrides = {
+          ...overrides,
+          [panelTeamId]: {
+            original_rank: panelOriginalRank,
+            final_rank: formData.final_rank,
+            justification: formData.justification,
+            committee_member: formData.committee_member,
+          },
+        };
+        panelOpen = false;
+      }
+    }
+  }
+
+  async function handleOverrideRemove() {
+    if (!runSummary) return;
+
+    const response = await fetch(
+      `/api/ranking/overrides?ranking_run_id=${runSummary.ranking_run_id}&team_id=${panelTeamId}`,
+      { method: 'DELETE' },
+    );
+
+    if (response.ok) {
+      const result = await response.json();
+      if (result.success) {
+        const updated = { ...overrides };
+        delete updated[panelTeamId];
+        overrides = updated;
+        panelOpen = false;
+      }
+    }
+  }
+
+  async function handleFinalizeRun() {
+    if (!runSummary || finalizingRun) return;
+
+    finalizingRun = true;
+    try {
+      const response = await fetch('/api/ranking/runs/finalize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ranking_run_id: runSummary.ranking_run_id }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success) {
+          runStatus = 'finalized';
+          // Update the run in history list
+          previousRuns = previousRuns.map((r) =>
+            r.id === runSummary!.ranking_run_id ? { ...r, status: 'finalized' as const } : r,
+          );
+        }
+      }
+    } finally {
+      finalizingRun = false;
+    }
   }
 </script>
 
@@ -197,6 +307,12 @@
   {/if}
 
   {#if step === 'results'}
+    {#if runStatus === 'finalized'}
+      <Banner variant="info" title="Finalized">
+        This ranking run has been finalized. Overrides are locked and cannot be modified.
+      </Banner>
+    {/if}
+
     {#if runSummary}
       <Banner variant="success">
         <div class="flex items-center gap-3">
@@ -229,10 +345,21 @@
       {teams}
       {seedingFactors}
       rankingRunId={runSummary?.ranking_run_id ?? ''}
+      {overrides}
+      {runStatus}
+      onoverrideclick={handleOverrideClick}
     />
 
-    <div class="flex justify-end">
-      <Button variant="primary" onclick={handleReset}>Run Again</Button>
+    <!-- Finalize / Run Again controls -->
+    <div class="flex items-center justify-end gap-3">
+      {#if runStatus === 'draft' && hasOverrides}
+        <Button
+          variant="primary"
+          loading={finalizingRun}
+          onclick={handleFinalizeRun}
+        >Finalize Run</Button>
+      {/if}
+      <Button variant={runStatus === 'draft' && hasOverrides ? 'secondary' : 'primary'} onclick={handleReset}>Run Again</Button>
     </div>
   {/if}
 
@@ -279,3 +406,16 @@
     {/if}
   {/if}
 </div>
+
+<!-- Override Panel -->
+<OverridePanel
+  open={panelOpen}
+  teamName={panelTeamName}
+  teamId={panelTeamId}
+  originalRank={panelOriginalRank}
+  {runStatus}
+  existingOverride={panelExistingOverride}
+  onsave={handleOverrideSave}
+  onremove={handleOverrideRemove}
+  onclose={() => (panelOpen = false)}
+/>

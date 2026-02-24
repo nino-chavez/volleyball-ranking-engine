@@ -9,6 +9,7 @@ export const rankingRunSchema = z.object({
   ran_at: datetimeSchema,
   description: z.string().nullable(),
   parameters: z.unknown().nullable(),
+  status: z.enum(['draft', 'finalized']).default('draft'),
   created_at: datetimeSchema,
   updated_at: datetimeSchema,
 });

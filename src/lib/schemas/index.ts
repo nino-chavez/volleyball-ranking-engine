@@ -44,3 +44,14 @@ export {
   rankingResultUpdateSchema,
 } from './ranking-result';
 export type { RankingResult, RankingResultInsert, RankingResultUpdate } from './ranking-result';
+
+export {
+  rankingOverrideSchema,
+  rankingOverrideInsertSchema,
+  rankingOverrideUpdateSchema,
+} from './ranking-override';
+export type {
+  RankingOverride,
+  RankingOverrideInsert,
+  RankingOverrideUpdate,
+} from './ranking-override';

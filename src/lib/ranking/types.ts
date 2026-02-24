@@ -78,3 +78,14 @@ export interface TeamInfo {
   name: string;
   code: string;
 }
+
+/** Override display data for the UI. */
+export interface RankingOverrideDisplay {
+  team_id: string;
+  original_rank: number;
+  final_rank: number;
+  justification: string;
+  committee_member: string;
+  created_at: string;
+  updated_at: string;
+}

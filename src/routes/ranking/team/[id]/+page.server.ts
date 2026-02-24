@@ -154,6 +154,14 @@ export const load: PageServerLoad = async ({ params, url }) => {
     }
   }
 
+  // Fetch override for this team in this run
+  const { data: overrideRow } = await supabaseServer
+    .from('ranking_overrides')
+    .select('original_rank, final_rank, justification, committee_member, created_at, updated_at')
+    .eq('ranking_run_id', runId)
+    .eq('team_id', teamId)
+    .maybeSingle();
+
   return {
     team,
     ranking: rankingRow ? {
@@ -169,6 +177,14 @@ export const load: PageServerLoad = async ({ params, url }) => {
       algo5_rank: rankingRow.algo5_rank ?? 0,
       agg_rating: rankingRow.agg_rating ?? 0,
       agg_rank: rankingRow.agg_rank ?? 0,
+    } : null,
+    override: overrideRow ? {
+      original_rank: overrideRow.original_rank,
+      final_rank: overrideRow.final_rank,
+      justification: overrideRow.justification,
+      committee_member: overrideRow.committee_member,
+      created_at: overrideRow.created_at,
+      updated_at: overrideRow.updated_at,
     } : null,
     history,
     h2h,

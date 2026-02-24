@@ -4,7 +4,7 @@
   import DataTable from '$lib/components/DataTable.svelte';
   import RankBadge from '$lib/components/RankBadge.svelte';
   import Banner from '$lib/components/Banner.svelte';
-  import { toOrdinal, formatDate } from '$lib/utils/format.js';
+  import { toOrdinal, formatDate, formatTimestamp } from '$lib/utils/format.js';
 
   let { data } = $props<{
     data: {
@@ -16,6 +16,14 @@
         algo4_rating: number; algo4_rank: number;
         algo5_rating: number; algo5_rank: number;
         agg_rating: number; agg_rank: number;
+      } | null;
+      override: {
+        original_rank: number;
+        final_rank: number;
+        justification: string;
+        committee_member: string;
+        created_at: string;
+        updated_at: string;
       } | null;
       history: Array<{
         tournament_name: string;
@@ -99,6 +107,36 @@
     </Card>
   {:else}
     <Banner variant="warning">No ranking data found for this team in the selected run.</Banner>
+  {/if}
+
+  <!-- Committee Adjustment -->
+  {#if data.override}
+    <Card>
+      {#snippet header()}
+        <h2 class="text-lg font-semibold text-text-primary">Committee Adjustment</h2>
+      {/snippet}
+      <div class="space-y-4">
+        <div class="flex items-center gap-6">
+          <div class="text-center">
+            <div class="text-xs font-medium uppercase tracking-wider text-text-muted">Algo Rank</div>
+            <div class="mt-1 text-xl font-bold tabular-nums text-text-secondary">{toOrdinal(data.override.original_rank)}</div>
+          </div>
+          <div class="text-text-muted">&rarr;</div>
+          <div class="text-center">
+            <div class="text-xs font-medium uppercase tracking-wider text-text-muted">Final Seed</div>
+            <div class="mt-1 text-xl font-bold tabular-nums text-accent">{toOrdinal(data.override.final_rank)}</div>
+          </div>
+        </div>
+        <div>
+          <div class="text-sm font-medium text-text-secondary">Justification</div>
+          <p class="mt-1 text-sm text-text-primary">{data.override.justification}</p>
+        </div>
+        <div class="flex items-center gap-4 text-xs text-text-muted">
+          <span>By: <span class="font-medium text-text-secondary">{data.override.committee_member}</span></span>
+          <span>Updated: {formatTimestamp(data.override.updated_at)}</span>
+        </div>
+      </div>
+    </Card>
   {/if}
 
   <!-- Algorithm Breakdown -->

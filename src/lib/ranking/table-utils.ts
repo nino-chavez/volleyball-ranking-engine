@@ -6,8 +6,37 @@
 
 import type { NormalizedTeamResult } from './types.js';
 
-export type SortKey = 'agg_rank' | 'agg_rating' | 'win_pct' | 'team_name';
+export type SortKey = 'agg_rank' | 'agg_rating' | 'win_pct' | 'team_name' | 'final_rank';
 export type SortDirection = 'asc' | 'desc';
+
+/** Override data for a single team. */
+export interface OverrideData {
+  original_rank: number;
+  final_rank: number;
+  justification: string;
+  committee_member: string;
+}
+
+/**
+ * Compute final ranks by merging algorithmic ranks with committee overrides.
+ *
+ * Teams with overrides get the override's final_rank.
+ * Teams without overrides keep their agg_rank.
+ * Returns a map of team_id -> final_rank.
+ */
+export function computeFinalRanks(
+  results: NormalizedTeamResult[],
+  overrides: Record<string, OverrideData>,
+): Record<string, number> {
+  const finalRanks: Record<string, number> = {};
+
+  for (const r of results) {
+    const override = overrides[r.team_id];
+    finalRanks[r.team_id] = override ? override.final_rank : r.agg_rank;
+  }
+
+  return finalRanks;
+}
 
 /**
  * Sort ranking results by the given key and direction.
@@ -17,9 +46,12 @@ export function sortResults(
   teams: Record<string, { name: string; region: string }>,
   seedingFactors: Record<string, { win_pct: number }>,
   sortKey: SortKey,
-  sortDirection: SortDirection
+  sortDirection: SortDirection,
+  overrides?: Record<string, OverrideData>,
 ): NormalizedTeamResult[] {
   const sorted = [...results];
+
+  const finalRanks = overrides ? computeFinalRanks(results, overrides) : undefined;
 
   sorted.sort((a, b) => {
     let cmp = 0;
@@ -43,6 +75,12 @@ export function sortResults(
         cmp = aName.localeCompare(bName);
         break;
       }
+      case 'final_rank': {
+        const aFinal = finalRanks?.[a.team_id] ?? a.agg_rank;
+        const bFinal = finalRanks?.[b.team_id] ?? b.agg_rank;
+        cmp = aFinal - bFinal;
+        break;
+      }
     }
 
     return sortDirection === 'desc' ? -cmp : cmp;
@@ -58,7 +96,7 @@ export function filterResults(
   results: NormalizedTeamResult[],
   teams: Record<string, { name: string; region: string }>,
   searchText: string,
-  regionFilter: string
+  regionFilter: string,
 ): NormalizedTeamResult[] {
   const search = searchText.toLowerCase().trim();
 

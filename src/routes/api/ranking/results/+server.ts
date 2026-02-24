@@ -38,6 +38,38 @@ export const GET: RequestHandler = async ({ url }) => {
       teamsMap[team.id] = { name: team.name, region: team.region };
     }
 
+    // Fetch overrides for this run
+    const { data: overrideRows } = await supabaseServer
+      .from('ranking_overrides')
+      .select('team_id, original_rank, final_rank, justification, committee_member, created_at, updated_at')
+      .eq('ranking_run_id', rankingRunId);
+
+    const overridesMap: Record<string, {
+      original_rank: number;
+      final_rank: number;
+      justification: string;
+      committee_member: string;
+      created_at: string;
+      updated_at: string;
+    }> = {};
+    for (const o of overrideRows ?? []) {
+      overridesMap[o.team_id] = {
+        original_rank: o.original_rank,
+        final_rank: o.final_rank,
+        justification: o.justification,
+        committee_member: o.committee_member,
+        created_at: o.created_at,
+        updated_at: o.updated_at,
+      };
+    }
+
+    // Fetch run status
+    const { data: runRow } = await supabaseServer
+      .from('ranking_runs')
+      .select('status')
+      .eq('id', rankingRunId)
+      .single();
+
     return json({
       success: true,
       data: {
@@ -57,6 +89,8 @@ export const GET: RequestHandler = async ({ url }) => {
           agg_rank: r.agg_rank ?? 0,
         })),
         teams: teamsMap,
+        overrides: overridesMap,
+        run_status: runRow?.status ?? 'draft',
       },
     });
   } catch (err) {

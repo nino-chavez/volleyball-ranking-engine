@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { NormalizedTeamResult } from '$lib/ranking/types.js';
-  import { sortResults, filterResults, type SortKey, type SortDirection } from '$lib/ranking/table-utils.js';
+  import { sortResults, filterResults, computeFinalRanks, type SortKey, type SortDirection, type OverrideData } from '$lib/ranking/table-utils.js';
   import { toOrdinal } from '$lib/utils/format.js';
   import DataTable from './DataTable.svelte';
   import TierRow from './TierRow.svelte';
@@ -18,16 +18,30 @@
     teams,
     seedingFactors = {},
     rankingRunId = '',
+    overrides = {},
+    runStatus = 'draft',
+    onoverrideclick,
   }: {
     results: NormalizedTeamResult[];
     teams: Record<string, { name: string; region: string }>;
     seedingFactors?: Record<string, SeedingData>;
     rankingRunId?: string;
+    overrides?: Record<string, OverrideData>;
+    runStatus?: 'draft' | 'finalized';
+    onoverrideclick?: (teamId: string, teamName: string, aggRank: number) => void;
   } = $props();
 
   // --- Sorting State ---
+  const hasOverrides = $derived(Object.keys(overrides).length > 0);
   let sortKey = $state<SortKey>('agg_rank');
   let sortDirection = $state<SortDirection>('asc');
+
+  // Switch default sort to final_rank when overrides exist
+  $effect(() => {
+    if (hasOverrides && sortKey === 'agg_rank') {
+      sortKey = 'final_rank';
+    }
+  });
 
   // --- Filter State ---
   let searchText = $state('');
@@ -48,9 +62,13 @@
     uniqueRegions().map((r) => ({ value: r, label: r })),
   );
 
+  const finalRanks = $derived(
+    hasOverrides ? computeFinalRanks(results, overrides) : {},
+  );
+
   const filteredAndSorted = $derived(() => {
     const filtered = filterResults(results, teams, searchText, regionFilter);
-    return sortResults(filtered, teams, seedingFactors, sortKey, sortDirection);
+    return sortResults(filtered, teams, seedingFactors, sortKey, sortDirection, hasOverrides ? overrides : undefined);
   });
 
   const displayResults = $derived(filteredAndSorted());
@@ -82,6 +100,12 @@
 
   function teamName(teamId: string): string {
     return teams[teamId]?.name ?? teamId;
+  }
+
+  function handleOverrideClick(teamId: string) {
+    if (onoverrideclick) {
+      onoverrideclick(teamId, teamName(teamId), results.find(r => r.team_id === teamId)?.agg_rank ?? 0);
+    }
   }
 </script>
 
@@ -123,12 +147,20 @@
   <DataTable caption="Ranking results">
     <thead class="bg-surface-alt">
       <tr>
+        {#if hasOverrides}
+          <th
+            scope="col"
+            class="cursor-pointer select-none px-3 py-3 text-center text-xs font-semibold uppercase tracking-wider text-text-muted hover:text-text-primary"
+            aria-sort={ariaSortValue('final_rank')}
+            onclick={() => handleSort('final_rank')}
+          >Final Seed{sortArrow('final_rank')}</th>
+        {/if}
         <th
           scope="col"
           class="cursor-pointer select-none px-3 py-3 text-center text-xs font-semibold uppercase tracking-wider text-text-muted hover:text-text-primary"
           aria-sort={ariaSortValue('agg_rank')}
           onclick={() => handleSort('agg_rank')}
-        >Rank{sortArrow('agg_rank')}</th>
+        >{hasOverrides ? 'Algo Rank' : 'Rank'}{sortArrow('agg_rank')}</th>
         <th
           scope="col"
           class="cursor-pointer select-none px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted hover:text-text-primary"
@@ -161,12 +193,30 @@
           aria-sort={ariaSortValue('agg_rating')}
           onclick={() => handleSort('agg_rating')}
         >AggRating{sortArrow('agg_rating')}</th>
+        {#if onoverrideclick}
+          <th scope="col" class="px-3 py-3 text-center text-xs font-semibold uppercase tracking-wider text-text-muted">Override</th>
+        {/if}
       </tr>
     </thead>
     <tbody class="divide-y divide-border">
       {#each displayResults as row (row.team_id)}
-        <TierRow rank={row.agg_rank}>
-          <td class="whitespace-nowrap px-3 py-2 text-center"><RankBadge rank={row.agg_rank} /></td>
+        {@const hasOverride = row.team_id in overrides}
+        <TierRow rank={hasOverrides ? (finalRanks[row.team_id] ?? row.agg_rank) : row.agg_rank}>
+          {#if hasOverrides}
+            <td class="whitespace-nowrap px-3 py-2 text-center">
+              <RankBadge rank={finalRanks[row.team_id] ?? row.agg_rank} />
+              {#if hasOverride}
+                <span class="ml-1 inline-flex items-center rounded-full bg-accent/10 px-1.5 py-0.5 text-[10px] font-semibold text-accent" title="Committee override applied">ADJ</span>
+              {/if}
+            </td>
+          {/if}
+          <td class="whitespace-nowrap px-3 py-2 text-center {hasOverrides ? 'text-sm text-text-muted' : ''}">
+            {#if hasOverrides}
+              {row.agg_rank}
+            {:else}
+              <RankBadge rank={row.agg_rank} />
+            {/if}
+          </td>
           <td class="whitespace-nowrap px-3 py-2 text-left text-sm font-medium text-text-primary">
             {#if rankingRunId}
               <a
@@ -193,6 +243,18 @@
           <td class="hidden whitespace-nowrap px-3 py-2 text-right text-sm tabular-nums text-text-secondary sm:table-cell">{fmt(row.algo5_rating)}</td>
           <td class="hidden whitespace-nowrap px-3 py-2 text-center text-sm text-text-muted sm:table-cell">{row.algo5_rank}</td>
           <td class="whitespace-nowrap px-3 py-2 text-right text-sm font-semibold tabular-nums text-text-primary">{fmt(row.agg_rating)}</td>
+          {#if onoverrideclick}
+            <td class="whitespace-nowrap px-3 py-2 text-center">
+              <button
+                type="button"
+                class="rounded px-2 py-1 text-xs font-medium {hasOverride ? 'bg-accent/10 text-accent hover:bg-accent/20' : 'text-text-muted hover:bg-surface-alt hover:text-text-primary'} focus:outline-none focus:ring-1 focus:ring-accent"
+                onclick={() => handleOverrideClick(row.team_id)}
+                title={hasOverride ? 'Edit override' : 'Add override'}
+              >
+                {hasOverride ? 'Edit' : 'Adjust'}
+              </button>
+            </td>
+          {/if}
         </TierRow>
       {/each}
     </tbody>

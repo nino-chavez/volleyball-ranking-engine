@@ -21,7 +21,7 @@ export const GET: RequestHandler = async ({ url }) => {
     // Fetch ranking runs for the season
     const { data: runs, error: runsError } = await supabaseServer
       .from('ranking_runs')
-      .select('id, ran_at, parameters')
+      .select('id, ran_at, parameters, status')
       .eq('season_id', seasonId)
       .order('ran_at', { ascending: false });
 
@@ -50,6 +50,7 @@ export const GET: RequestHandler = async ({ url }) => {
       id: r.id,
       ran_at: r.ran_at,
       teams_ranked: countMap.get(r.id) ?? 0,
+      status: r.status,
     }));
 
     return json({ success: true, data: { runs: runsList } });

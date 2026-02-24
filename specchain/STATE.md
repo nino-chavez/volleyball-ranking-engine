@@ -4,10 +4,10 @@
 2026-02-24
 
 ## Active Spec
-None -- all 7 roadmap features complete.
+None -- all 8 roadmap features complete.
 
 ## Session Context
-7 of 9 roadmap features implemented and committed. 146 tests passing across 32 files, 0 new TypeScript errors, 0 regressions. Features 8-9 remain (Export & Reporting, Multi-Age-Group Support).
+8 of 9 roadmap features implemented and committed. 173 tests passing across 35 files, 0 new TypeScript errors, 0 regressions. Feature 9 remains (Multi-Age-Group Support).
 
 ## Active Blockers
 None.
@@ -39,6 +39,11 @@ None.
 | 2026-02-24 | Override panel as slide-out drawer | Right-side drawer provides space for justification textarea without cluttering the table; weights page uses inline editing for simple values but overrides need more fields | Override UI pattern |
 | 2026-02-24 | Run finalization via status column | `status` column on `ranking_runs` (`draft`/`finalized`); finalized runs become read-only; lightweight single button click | Override workflow |
 | 2026-02-24 | Final rank sorting with override merge | `computeFinalRanks()` pure function merges overrides with agg_rank; teams without overrides keep algorithmic rank; `final_rank` sort key added | Table utilities design |
+| 2026-02-24 | Client-side export generation | All ranking data already in memory on dashboard; no server endpoints needed; keeps feature small | Export architecture |
+| 2026-02-24 | Three formats: CSV + XLSX + PDF | CSV trivial (no lib), XLSX reuses existing `xlsx` dep, PDF via `jspdf` + `jspdf-autotable` (new deps) | Export format choices |
+| 2026-02-24 | Shared data assembly layer | Pure `assembleExportRows()` transforms ranking state into flat rows; all three generators consume same data; fully testable | Export data layer |
+| 2026-02-24 | Dynamic imports for XLSX/PDF | `import()` at click time for code splitting; CSV is synchronous and bundled; keeps initial page bundle small | Export bundle optimization |
+| 2026-02-24 | Algorithm breakdown toggle | Summary export (default) has Final Seed/Team/Region/AggRating; detailed adds all 5 algo ratings/ranks; override summary always included when overrides exist | Export content options |
 
 ## Execution Profiles
 | Spec | Strategy | Depth | Date |
@@ -50,6 +55,7 @@ None.
 | design-system-ui-foundation | squad | standard | 2026-02-23 |
 | rankings-dashboard | squad | standard | 2026-02-24 |
 | manual-overrides-committee-adjustments | squad | standard | 2026-02-24 |
+| export-reporting | squad | standard | 2026-02-24 |
 
 ## Patterns Established
 - Migration naming: `YYYYMMDDHHMMSS_description.sql` in `supabase/migrations/`
@@ -75,6 +81,10 @@ None.
 - Run status workflow: `draft` (default) allows edits, `finalized` makes read-only; checked server-side before mutations
 - Slide-out panel pattern: fixed right drawer with backdrop, form validation, read-only mode based on parent status
 - Results API returns related data (overrides map, run status) alongside primary data to minimize client roundtrips
+- Export module structure: types in `types.ts`, shared assembly in `export-data.ts`, format generators in `csv.ts`/`xlsx.ts`/`pdf.ts`, browser utils in `download.ts`, barrel in `index.ts`
+- Export data assembly: `assembleExportRows()` reuses `computeFinalRanks()` from table-utils; flat `ExportRow` consumed by all generators
+- Dynamic import pattern: XLSX and PDF generators loaded via `import()` on user click; CSV synchronous (no heavy deps)
+- ExportDropdown component: dropdown menu with format options + algorithm breakdowns checkbox; loading state during generation
 
 ## Session Log
 | Date | Session | Summary | Profile | Next Steps |
@@ -86,3 +96,4 @@ None.
 | 2026-02-23 | 5 | Implemented Feature 4: Tournament Weighting & Seeding. Weighted Colley/Elo algorithms, seeding factors (win %, best national finish), weights API (GET/PUT), weights management page, seeding columns in results table. 112/112 tests passing. | squad + standard | Feature 6: Rankings Dashboard |
 | 2026-02-24 | 6 | Implemented Feature 6: Rankings Dashboard. Sortable/filterable ranking table (search, region filter, 4 sort keys), team detail page (ranking summary, algorithm breakdown, tournament history, H2H records), run history selector. 4 new API endpoints, shared format utils, table-utils with 6 tests. 20 files changed. 118/118 tests passing. | squad + standard | Feature 7: Manual Overrides & Committee Adjustments |
 | 2026-02-24 | 7 | Implemented Feature 7: Manual Overrides & Committee Adjustments. Ranking overrides table with audit trail, override panel drawer (form validation, read-only finalized mode), Final Seed column with ADJ badges, run finalization workflow, committee adjustment section on team detail. 2 migrations, 3 API endpoints (overrides CRUD + finalize), OverridePanel component, computeFinalRanks utility. 9 files created, 11 modified. 146/146 tests passing (28 new). | squad + standard | Feature 8: Export & Reporting |
+| 2026-02-24 | 8 | Implemented Feature 8: Export & Reporting. Client-side CSV/XLSX/PDF generation from in-memory ranking data. Shared assembleExportRows() data layer, RFC 4180 CSV with metadata comments, XLSX with Rankings+Overrides sheets (reuses existing xlsx lib), PDF with jsPDF+autoTable (new deps). ExportDropdown component with format picker and algorithm breakdowns toggle. Dynamic imports for XLSX/PDF code splitting. 11 files created, 1 modified. 173/173 tests passing (27 new). | squad + standard | Feature 9: Multi-Age-Group Support |

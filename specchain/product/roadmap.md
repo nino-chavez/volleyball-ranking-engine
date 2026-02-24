@@ -14,7 +14,7 @@
 
 7. [x] **Manual Overrides & Committee Adjustments** -- Enable committee members to apply manual ranking adjustments for subjective criteria (written appeals, individual data known about teams, club history). Each adjustment requires a text justification and is stored with an audit trail. The dashboard reflects both the algorithmic ranking and the committee-adjusted final seeding. `M`
 
-8. [ ] **Export & Reporting** -- Generate exportable ranking reports in CSV and PDF formats. Include the final seeding order, per-team breakdowns, and a summary of any manual adjustments applied. Designed for distribution to tournament organizers and for committee records. `S`
+8. [x] **Export & Reporting** -- Generate exportable ranking reports in CSV and PDF formats. Include the final seeding order, per-team breakdowns, and a summary of any manual adjustments applied. Designed for distribution to tournament organizers and for committee records. `S`
 
 9. [ ] **Multi-Age-Group Support** -- Extend the system to support 15U, 16U, and 17U divisions alongside 18U. Each age group operates as an independent data set using the same schema, algorithms, and UI, selectable via an age-group switcher in the dashboard. `M`
 

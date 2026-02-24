@@ -278,6 +278,7 @@ export interface Database {
         Row: {
           id: string;
           season_id: string;
+          age_group: Database['public']['Enums']['age_group_enum'];
           ran_at: string;
           description: string | null;
           parameters: Json | null;
@@ -288,6 +289,7 @@ export interface Database {
         Insert: {
           id?: string;
           season_id: string;
+          age_group: Database['public']['Enums']['age_group_enum'];
           ran_at?: string;
           description?: string | null;
           parameters?: Json | null;
@@ -298,6 +300,7 @@ export interface Database {
         Update: {
           id?: string;
           season_id?: string;
+          age_group?: Database['public']['Enums']['age_group_enum'];
           ran_at?: string;
           description?: string | null;
           parameters?: Json | null;

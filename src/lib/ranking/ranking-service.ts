@@ -59,6 +59,7 @@ export class RankingService {
       .from('ranking_runs')
       .insert({
         season_id: config.season_id,
+        age_group: ageGroupResult.data,
         ran_at: ranAt,
         parameters: {
           k_factor: config.k_factor,

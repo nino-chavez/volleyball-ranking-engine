@@ -57,7 +57,7 @@
   let finalizingRun = $state(false);
 
   // --- Run History State ---
-  let previousRuns = $state<Array<{ id: string; ran_at: string; teams_ranked: number; status: 'draft' | 'finalized' }>>([]);
+  let previousRuns = $state<Array<{ id: string; ran_at: string; teams_ranked: number; status: 'draft' | 'finalized'; age_group: string }>>([]);
   let selectedRunId = $state('');
   let loadingRun = $state(false);
 
@@ -76,7 +76,7 @@
   const runSelectOptions = $derived(
     previousRuns.map((r) => ({
       value: r.id,
-      label: `${formatTimestamp(r.ran_at)} \u2014 ${r.teams_ranked} teams${r.status === 'finalized' ? ' (Finalized)' : ''}`,
+      label: `${formatTimestamp(r.ran_at)} \u2014 ${r.age_group} \u2014 ${r.teams_ranked} teams${r.status === 'finalized' ? ' (Finalized)' : ''}`,
     })),
   );
 
@@ -174,10 +174,10 @@
   }
 
   async function loadRunHistory() {
-    if (!selectedSeasonId) return;
+    if (!selectedSeasonId || !selectedAgeGroup) return;
 
     const response = await fetch(
-      `/api/ranking/runs?season_id=${selectedSeasonId}`,
+      `/api/ranking/runs?season_id=${selectedSeasonId}&age_group=${selectedAgeGroup}`,
     );
 
     if (response.ok) {

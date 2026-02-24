@@ -22,6 +22,9 @@ function createMockSupabase(overrides: {
     ranking_runs_deleted: false,
   };
 
+  // Capture the payload passed to ranking_runs insert
+  let rankingRunsInsertPayload: unknown = null;
+
   const client = {
     from: vi.fn((table: string) => {
       if (table === 'seasons') {
@@ -125,17 +128,20 @@ function createMockSupabase(overrides: {
 
       if (table === 'ranking_runs') {
         return {
-          insert: () => ({
-            select: () => ({
-              single: () =>
-                Promise.resolve(
-                  overrides.ranking_runs_insert ?? {
-                    data: { id: 'run-123' },
-                    error: null,
-                  }
-                ),
-            }),
-          }),
+          insert: (payload: unknown) => {
+            rankingRunsInsertPayload = payload;
+            return {
+              select: () => ({
+                single: () =>
+                  Promise.resolve(
+                    overrides.ranking_runs_insert ?? {
+                      data: { id: 'run-123' },
+                      error: null,
+                    }
+                  ),
+              }),
+            };
+          },
           update: () => ({
             eq: () => Promise.resolve({ error: null }),
           }),
@@ -178,6 +184,9 @@ function createMockSupabase(overrides: {
       return {};
     }),
     _deleteTracker: deleteTracker,
+    get _rankingRunsInsertPayload() {
+      return rankingRunsInsertPayload;
+    },
   };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -255,6 +264,27 @@ describe('RankingService', () => {
     await expect(
       service.runRanking({ ...defaultConfig, age_group: 'INVALID' })
     ).rejects.toThrow('Invalid age_group');
+  });
+
+  it('includes age_group in the ranking_runs insert payload', async () => {
+    const supabase = createMockSupabase({});
+    const service = new RankingService(supabase);
+
+    await service.runRanking(defaultConfig);
+
+    const payload = supabase._rankingRunsInsertPayload as Record<string, unknown>;
+    expect(payload).toBeDefined();
+    expect(payload.age_group).toBe('18U');
+  });
+
+  it('passes different age_group values through to the insert', async () => {
+    const supabase = createMockSupabase({});
+    const service = new RankingService(supabase);
+
+    await service.runRanking({ ...defaultConfig, age_group: '15U' });
+
+    const payload = supabase._rankingRunsInsertPayload as Record<string, unknown>;
+    expect(payload.age_group).toBe('15U');
   });
 
   it('getRunResults returns results sorted by agg_rank', async () => {

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { AgeGroup } from './enums.js';
 
 const uuidSchema = z.uuid();
 const datetimeSchema = z.iso.datetime();
@@ -6,6 +7,7 @@ const datetimeSchema = z.iso.datetime();
 export const rankingRunSchema = z.object({
   id: uuidSchema,
   season_id: uuidSchema,
+  age_group: AgeGroup,
   ran_at: datetimeSchema,
   description: z.string().nullable(),
   parameters: z.unknown().nullable(),

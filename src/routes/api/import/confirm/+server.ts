@@ -11,6 +11,7 @@ import type {
   ParsedFinishesRow,
   ParsedColleyRow,
 } from '$lib/import/types.js';
+import type { Database } from '$lib/types/database.types.js';
 
 interface ConfirmRequestBody {
   rows: ParsedFinishesRow[] | ParsedColleyRow[];
@@ -169,6 +170,7 @@ export const POST: RequestHandler = async ({ request }) => {
         .from('ranking_runs')
         .insert({
           season_id: seasonId,
+          age_group: ageGroup as Database['public']['Enums']['age_group_enum'],
           description: 'Imported from Colley file',
         })
         .select('id')

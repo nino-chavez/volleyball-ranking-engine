@@ -1,14 +1,17 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types.js';
 import { supabaseServer } from '$lib/supabase-server.js';
+import { AgeGroup } from '$lib/schemas/enums.js';
 
 /**
- * GET /api/ranking/runs?season_id=...
+ * GET /api/ranking/runs?season_id=...&age_group=...
  *
  * Returns past ranking runs for a season, ordered by ran_at descending.
+ * Optionally filtered by age_group.
  */
 export const GET: RequestHandler = async ({ url }) => {
   const seasonId = url.searchParams.get('season_id');
+  const ageGroup = url.searchParams.get('age_group');
 
   if (!seasonId) {
     return json(
@@ -18,11 +21,20 @@ export const GET: RequestHandler = async ({ url }) => {
   }
 
   try {
-    // Fetch ranking runs for the season
-    const { data: runs, error: runsError } = await supabaseServer
+    // Fetch ranking runs for the season (optionally filtered by age_group)
+    let query = supabaseServer
       .from('ranking_runs')
-      .select('id, ran_at, parameters, status')
-      .eq('season_id', seasonId)
+      .select('id, ran_at, parameters, status, age_group')
+      .eq('season_id', seasonId);
+
+    if (ageGroup) {
+      const parsed = AgeGroup.safeParse(ageGroup);
+      if (parsed.success) {
+        query = query.eq('age_group', parsed.data);
+      }
+    }
+
+    const { data: runs, error: runsError } = await query
       .order('ran_at', { ascending: false });
 
     if (runsError) {
@@ -51,6 +63,7 @@ export const GET: RequestHandler = async ({ url }) => {
       ran_at: r.ran_at,
       teams_ranked: countMap.get(r.id) ?? 0,
       status: r.status,
+      age_group: r.age_group,
     }));
 
     return json({ success: true, data: { runs: runsList } });

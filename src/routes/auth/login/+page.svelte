@@ -90,8 +90,7 @@
 			</Button>
 
 			<p class="text-center text-sm text-text-muted">
-				Don't have an account?
-				<a href="/auth/signup" class="font-medium text-accent hover:text-accent-hover">Sign up</a>
+				Need an account? Contact your administrator.
 			</p>
 		</form>
 	</Card>

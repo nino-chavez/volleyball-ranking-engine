@@ -9,12 +9,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	}
 
 	if (action === 'signup') {
-		const { error } = await locals.supabase.auth.signUp({ email, password });
-		if (error) {
-			console.error('Signup error:', error.message);
-			return json({ error: 'Signup failed. Please try again.' }, { status: 400 });
-		}
-		return json({ success: true, confirmEmail: true });
+		return json({ error: 'Public signup is disabled. Contact an administrator for access.' }, { status: 403 });
 	}
 
 	// Default: login

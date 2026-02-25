@@ -294,9 +294,15 @@
 			/>
 
 			{#if !contextReady && step === 'select'}
-				<p class="text-center text-sm text-warning">
-					Please select a season and age group before uploading a file.
-				</p>
+				<Card>
+					<div class="py-12 text-center">
+						<svg class="mx-auto h-12 w-12 text-text-muted" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+						</svg>
+						<h3 class="mt-3 text-sm font-semibold text-text-primary">Ready to import</h3>
+						<p class="mt-1 text-sm text-text-muted">Select a season, age group, and format above to upload a spreadsheet.</p>
+					</div>
+				</Card>
 			{/if}
 		{/if}
 

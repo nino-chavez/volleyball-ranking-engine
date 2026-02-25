@@ -443,9 +443,15 @@
 		</Card>
 
 		{#if !contextReady && step === 'idle'}
-			<p class="text-center text-sm text-warning">
-				Please select a season and age group before running rankings.
-			</p>
+			<Card>
+				<div class="py-12 text-center">
+					<svg class="mx-auto h-12 w-12 text-text-muted" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+					</svg>
+					<h3 class="mt-3 text-sm font-semibold text-text-primary">No ranking run selected</h3>
+					<p class="mt-1 text-sm text-text-muted">Select a season and age group above, then click Run Rankings to compute results.</p>
+				</div>
+			</Card>
 		{/if}
 	{/if}
 </div>

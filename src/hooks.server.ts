@@ -72,6 +72,11 @@ const authGuardHandle: Handle = async ({ event, resolve }) => {
 		redirect(303, '/auth/login');
 	}
 
+	// Redirect authenticated users away from auth pages
+	if (path.startsWith('/auth/login') && session) {
+		redirect(303, '/ranking');
+	}
+
 	return resolve(event);
 };
 

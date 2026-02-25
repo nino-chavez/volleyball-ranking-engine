@@ -33,7 +33,10 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 			.order('date');
 
 		if (tournError) {
-			return json({ success: false, error: tournError.message }, { status: 500 });
+			const friendly = tournError.message.includes('invalid input syntax')
+				? 'Please select a valid season.'
+				: 'Failed to load tournaments.';
+			return json({ success: false, error: friendly }, { status: 500 });
 		}
 
 		const tournamentIds = (tournaments ?? []).map((t) => t.id);
@@ -46,7 +49,7 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 			.in('tournament_id', tournamentIds.length > 0 ? tournamentIds : ['__none__']);
 
 		if (weightError) {
-			return json({ success: false, error: weightError.message }, { status: 500 });
+			return json({ success: false, error: 'Failed to load tournament weights.' }, { status: 500 });
 		}
 
 		const weightMap = new Map(
@@ -121,7 +124,7 @@ export const PUT: RequestHandler = async ({ request, locals }) => {
 			.upsert(rows, { onConflict: 'tournament_id,season_id' });
 
 		if (error) {
-			return json({ success: false, error: error.message }, { status: 500 });
+			return json({ success: false, error: 'Failed to save tournament weights.' }, { status: 500 });
 		}
 
 		return json({ success: true, data: { upserted: rows.length } });

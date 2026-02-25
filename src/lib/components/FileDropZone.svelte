@@ -145,7 +145,10 @@
 
 	<button
 		type="button"
-		class="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-hover focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+		class="rounded-md px-4 py-2 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2
+		{disabled
+			? 'border border-border text-text-muted cursor-not-allowed'
+			: 'bg-accent text-white hover:bg-accent-hover'}"
 		{disabled}
 		onclick={openFilePicker}
 	>

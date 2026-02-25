@@ -67,6 +67,10 @@
 	const initialRegion = page.url.searchParams.get('region') ?? '';
 
 	function handleFilterChange(search: string, region: string) {
+		const currentSearch = page.url.searchParams.get('search') ?? '';
+		const currentRegion = page.url.searchParams.get('region') ?? '';
+		if (search === currentSearch && region === currentRegion) return;
+
 		const url = new URL(page.url);
 		if (search) url.searchParams.set('search', search);
 		else url.searchParams.delete('search');

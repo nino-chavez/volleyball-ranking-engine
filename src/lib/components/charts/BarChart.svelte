@@ -33,6 +33,7 @@
 		{padding}
 		xScale={scaleBand().padding(0.2)}
 		yScale={scaleLinear()}
+		yDomain={[0, null]}
 		yNice
 	>
 		<Svg>

@@ -33,12 +33,13 @@
 	}
 </script>
 
-<nav aria-label="Main navigation" class="border-b border-nav-border bg-nav-bg">
+<nav aria-label="Main navigation" class="bg-gradient-to-r from-[#0A0A0A] via-nav-bg to-[#0A0A0A] shadow-lg shadow-black/20">
 	<div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
 		<a
 			href="/"
-			class="text-lg font-extrabold tracking-tight uppercase text-white hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent rounded"
+			class="group flex items-center gap-2 text-lg font-extrabold tracking-tight uppercase text-white hover:text-accent focus:outline-none focus:ring-2 focus:ring-accent rounded transition-colors"
 		>
+			<span class="inline-block h-6 w-1 rounded-full bg-accent transition-all group-hover:h-7"></span>
 			Volleyball Rankings
 		</a>
 

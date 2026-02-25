@@ -32,7 +32,7 @@
 
 	// --- Results State ---
 	let rankingResults = $state<NormalizedTeamResult[]>([]);
-	let teams = $state<Record<string, { name: string; region: string }>>({});
+	let teams = $state<Record<string, { name: string; code: string; region: string }>>({});
 	let seedingFactors = $state<
 		Record<
 			string,

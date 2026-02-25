@@ -10,7 +10,7 @@
 	let { children, caption, stickyHeader = true }: Props = $props();
 </script>
 
-<div class="overflow-x-auto rounded-xl bg-surface shadow-md">
+<div class="overflow-x-auto rounded-xl bg-surface shadow-md ring-1 ring-black/[0.04]">
 	<table class="min-w-full divide-y divide-border">
 		{#if caption}
 			<caption class="sr-only">{caption}</caption>

@@ -79,7 +79,7 @@ describe('Card padding variants', () => {
 		});
 
 		// The content wrapper should NOT have p-6 class
-		const contentDiv = container.querySelector('.rounded-lg > div:last-child');
+		const contentDiv = container.querySelector('.rounded-xl > div:last-child');
 		expect(contentDiv?.className).not.toContain('p-6');
 	});
 });

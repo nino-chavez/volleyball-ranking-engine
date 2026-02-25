@@ -31,7 +31,7 @@
 		onoverrideclick,
 	}: {
 		results: NormalizedTeamResult[];
-		teams: Record<string, { name: string; region: string }>;
+		teams: Record<string, { name: string; code?: string; region: string }>;
 		seedingFactors?: Record<string, SeedingData>;
 		rankingRunId?: string;
 		overrides?: Record<string, OverrideData>;
@@ -113,6 +113,10 @@
 		return teams[teamId]?.name ?? teamId;
 	}
 
+	function teamCode(teamId: string): string | undefined {
+		return teams[teamId]?.code;
+	}
+
 	function handleOverrideClick(teamId: string) {
 		if (onoverrideclick) {
 			onoverrideclick(
@@ -138,9 +142,9 @@
 			<input
 				id="ranking-search"
 				type="text"
-				placeholder="Search by team name..."
-				aria-label="Search teams by name"
-				class="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-text-primary placeholder-text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+				placeholder="Search by team name or code..."
+				aria-label="Search teams by name or code"
+				class="w-full rounded-lg border border-border bg-surface px-4 py-2 text-sm text-text-primary placeholder-text-muted shadow-sm focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
 				bind:value={searchText}
 			/>
 		</div>
@@ -162,7 +166,7 @@
 	{/if}
 
 	<DataTable caption="Ranking results">
-		<thead class="bg-[#1C1917] text-white">
+		<thead class="bg-gradient-to-r from-[#1C1917] via-[#292524] to-[#1C1917] text-white">
 			<tr>
 				{#if hasOverrides}
 					<th
@@ -290,15 +294,18 @@
 							<RankBadge rank={row.agg_rank} />
 						{/if}
 					</td>
-					<td class="whitespace-nowrap px-3 py-2 text-left text-sm font-medium text-text-primary">
+					<td class="whitespace-nowrap px-3 py-2 text-left text-sm text-text-primary">
 						{#if rankingRunId}
 							<a
 								href="/ranking/team/{row.team_id}?run_id={rankingRunId}"
-								class="text-accent underline-offset-2 hover:underline focus:outline-none focus:ring-1 focus:ring-accent rounded"
+								class="font-medium text-accent underline-offset-2 hover:underline focus:outline-none focus:ring-1 focus:ring-accent rounded"
 								>{teamName(row.team_id)}</a
 							>
 						{:else}
-							{teamName(row.team_id)}
+							<span class="font-medium">{teamName(row.team_id)}</span>
+						{/if}
+						{#if teamCode(row.team_id)}
+							<span class="ml-1.5 text-xs text-text-muted">{teamCode(row.team_id)}</span>
 						{/if}
 					</td>
 					{#if hasSeedingData}

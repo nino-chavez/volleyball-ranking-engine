@@ -105,12 +105,26 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			const teamCodes = [...new Set(finishesResult.rows.map((r) => r.teamCode))];
 			const tournamentNames = [...new Set(finishesResult.rows.map((r) => r.tournamentName))];
 
+			// Build code -> name map so identity conflicts carry the human-readable name
+			const codeToName = new Map<string, string>();
+			for (const row of finishesResult.rows) {
+				if (row.teamCode && row.teamName && !codeToName.has(row.teamCode)) {
+					codeToName.set(row.teamCode, row.teamName);
+				}
+			}
+
 			const teamResolution = await resolver.resolveTeams(teamCodes, ageGroup);
 			const tournamentResolution = await resolver.resolveTournaments(tournamentNames, seasonId);
 
+			// Enrich team conflicts with parsed team names from the spreadsheet
+			const enrichedTeamConflicts = teamResolution.unmatched.map((conflict) => ({
+				...conflict,
+				parsedName: codeToName.get(conflict.parsedValue) ?? conflict.parsedValue,
+			}));
+
 			// Merge identity conflicts into the parse result
 			finishesResult.identityConflicts = [
-				...teamResolution.unmatched,
+				...enrichedTeamConflicts,
 				...tournamentResolution.unmatched,
 			];
 
@@ -148,9 +162,20 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 			const colleyResult = parseResult as ParseResult<ParsedColleyRow>;
 			const teamCodes = [...new Set(colleyResult.rows.map((r) => r.teamCode))];
 
+			// Build code -> name map for colley format too
+			const codeToName = new Map<string, string>();
+			for (const row of colleyResult.rows) {
+				if (row.teamCode && row.teamName && !codeToName.has(row.teamCode)) {
+					codeToName.set(row.teamCode, row.teamName);
+				}
+			}
+
 			const teamResolution = await resolver.resolveTeams(teamCodes, ageGroup);
 
-			colleyResult.identityConflicts = [...teamResolution.unmatched];
+			colleyResult.identityConflicts = teamResolution.unmatched.map((conflict) => ({
+				...conflict,
+				parsedName: codeToName.get(conflict.parsedValue) ?? conflict.parsedValue,
+			}));
 
 			const identityMappings = Array.from(teamResolution.matched.entries()).map(([code, id]) => ({
 				type: 'team' as const,

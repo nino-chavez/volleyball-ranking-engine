@@ -15,7 +15,7 @@ import type { ExportRow, ExportMetadata, ExportOptions } from './types.js';
  */
 export function assembleExportRows(
 	results: NormalizedTeamResult[],
-	teams: Record<string, { name: string; region: string }>,
+	teams: Record<string, { name: string; code?: string; region: string }>,
 	seedingFactors: Record<string, { win_pct: number; best_national_finish: number | null }>,
 	overrides: Record<string, OverrideData>,
 	options: ExportOptions,
@@ -153,7 +153,7 @@ export function buildMetadataLines(metadata: ExportMetadata): string[] {
  */
 export function buildOverrideSummary(
 	overrides: Record<string, OverrideData>,
-	teams: Record<string, { name: string; region: string }>,
+	teams: Record<string, { name: string; code?: string; region: string }>,
 ): Array<{
 	team_name: string;
 	original_rank: number;

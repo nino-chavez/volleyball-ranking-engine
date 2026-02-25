@@ -24,7 +24,7 @@ export async function generatePdf(
 	rows: ExportRow[],
 	metadata: ExportMetadata,
 	overrides: Record<string, OverrideData>,
-	teams: Record<string, { name: string; region: string }>,
+	teams: Record<string, { name: string; code?: string; region: string }>,
 	options: ExportOptions,
 ): Promise<Blob> {
 	const { default: jsPDF } = await import('jspdf');

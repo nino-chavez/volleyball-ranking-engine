@@ -115,3 +115,26 @@ select,
 textarea {
 	min-height: 44px;
 }
+
+/* ============================================================
+   Athletic Design — Global Enhancements
+   ============================================================ */
+
+body {
+	background-color: var(--color-bg);
+	background-image:
+		radial-gradient(ellipse at 0% 0%, rgba(224, 90, 43, 0.03) 0%, transparent 50%),
+		radial-gradient(ellipse at 100% 100%, rgba(224, 90, 43, 0.02) 0%, transparent 50%);
+	min-height: 100vh;
+}
+
+/* Subtle selection highlight using accent */
+::selection {
+	background-color: rgba(224, 90, 43, 0.15);
+	color: inherit;
+}
+
+/* Smooth scrolling */
+html {
+	scroll-behavior: smooth;
+}

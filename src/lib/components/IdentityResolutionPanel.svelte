@@ -37,7 +37,7 @@
 	function buildNewRecord(conflict: IdentityConflict): Record<string, unknown> {
 		if (conflict.type === 'team') {
 			return {
-				name: conflict.parsedValue,
+				name: conflict.parsedName ?? conflict.parsedValue,
 				code: conflict.parsedValue,
 				age_group: ageGroup,
 				region: 'Unknown',
@@ -254,9 +254,16 @@
 							>
 								{conflict.type}
 							</span>
-							<span class="ml-2 font-medium text-text-primary">
-								"{conflict.parsedValue}"
-							</span>
+							{#if conflict.parsedName && conflict.parsedName !== conflict.parsedValue}
+								<span class="ml-2 font-medium text-text-primary">
+									"{conflict.parsedName}"
+								</span>
+								<span class="ml-1 text-xs text-text-muted">({conflict.parsedValue})</span>
+							{:else}
+								<span class="ml-2 font-medium text-text-primary">
+									"{conflict.parsedValue}"
+								</span>
+							{/if}
 							<span class="ml-1 text-sm text-text-muted">not found</span>
 							{#if resolved}
 								<span class="ml-2 text-sm text-green-700">

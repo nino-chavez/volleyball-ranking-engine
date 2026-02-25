@@ -43,7 +43,7 @@ export function computeFinalRanks(
  */
 export function sortResults(
 	results: NormalizedTeamResult[],
-	teams: Record<string, { name: string; region: string }>,
+	teams: Record<string, { name: string; code?: string; region: string }>,
 	seedingFactors: Record<string, { win_pct: number }>,
 	sortKey: SortKey,
 	sortDirection: SortDirection,
@@ -94,7 +94,7 @@ export function sortResults(
  */
 export function filterResults(
 	results: NormalizedTeamResult[],
-	teams: Record<string, { name: string; region: string }>,
+	teams: Record<string, { name: string; code?: string; region: string }>,
 	searchText: string,
 	regionFilter: string,
 ): NormalizedTeamResult[] {
@@ -109,10 +109,11 @@ export function filterResults(
 			return false;
 		}
 
-		// Search filter (name or code-like substring)
+		// Search filter (name or code)
 		if (search) {
 			const nameMatch = team.name.toLowerCase().includes(search);
-			if (!nameMatch) return false;
+			const codeMatch = team.code?.toLowerCase().includes(search) ?? false;
+			if (!nameMatch && !codeMatch) return false;
 		}
 
 		return true;

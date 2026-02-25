@@ -32,7 +32,7 @@
 
 <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
 	{#each actions as action (action.href)}
-		<a href={action.href} class="group block">
+		<a href={action.href} class="group block transition-transform duration-200 hover:-translate-y-1">
 			<Card>
 				<div class="flex flex-col gap-3">
 					<h2

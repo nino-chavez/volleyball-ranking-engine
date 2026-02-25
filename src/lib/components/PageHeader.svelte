@@ -12,5 +12,5 @@
 	{#if subtitle}
 		<p class="mt-2 text-base text-text-secondary">{subtitle}</p>
 	{/if}
-	<div class="mt-3 h-1 w-12 rounded-full bg-accent"></div>
+	<div class="mt-3 h-1 w-16 rounded-full bg-gradient-to-r from-accent to-accent/40"></div>
 </div>

@@ -53,6 +53,8 @@ export interface ParseError {
 export interface IdentityConflict {
 	type: 'team' | 'tournament';
 	parsedValue: string;
+	/** For teams: the human-readable name from the source data (column A) */
+	parsedName?: string;
 	suggestions: Array<{
 		id: string;
 		name: string;

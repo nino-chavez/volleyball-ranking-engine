@@ -13,12 +13,23 @@ export const load: PageServerLoad = async ({ params, url }) => {
 	// Fetch team info
 	const { data: team, error: teamError } = await supabaseServer
 		.from('teams')
-		.select('id, name, code, region, age_group')
+		.select('id, name, code, region, age_group, club_id')
 		.eq('id', teamId)
 		.single();
 
 	if (teamError || !team) {
 		throw error(404, 'Team not found');
+	}
+
+	// Fetch club name if team has a club
+	let clubName: string | null = null;
+	if (team.club_id) {
+		const { data: club } = await supabaseServer
+			.from('clubs')
+			.select('name')
+			.eq('id', team.club_id)
+			.single();
+		clubName = club?.name ?? null;
 	}
 
 	// Fetch ranking results for this team in this run
@@ -48,6 +59,12 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		finish_position: number;
 		field_size: number;
 	}> = [];
+
+	// Match data grouped by tournament
+	const matchesByTournament: Record<
+		string,
+		Array<{ opponent_name: string; won: boolean; set_scores?: string | null }>
+	> = {};
 
 	if (seasonId) {
 		const { data: tournaments } = await supabaseServer
@@ -80,6 +97,52 @@ export const load: PageServerLoad = async ({ params, url }) => {
 					};
 				})
 				.sort((a, b) => a.tournament_date.localeCompare(b.tournament_date));
+
+			// Fetch matches for this team in these tournaments
+			const { data: matchesA } = await supabaseServer
+				.from('matches')
+				.select('tournament_id, team_a_id, team_b_id, winner_id, set_scores')
+				.eq('team_a_id', teamId)
+				.in('tournament_id', tournamentIds);
+
+			const { data: matchesB } = await supabaseServer
+				.from('matches')
+				.select('tournament_id, team_a_id, team_b_id, winner_id, set_scores')
+				.eq('team_b_id', teamId)
+				.in('tournament_id', tournamentIds);
+
+			const allTournMatches = [...(matchesA ?? []), ...(matchesB ?? [])];
+
+			if (allTournMatches.length > 0) {
+				// Get all opponent IDs
+				const opponentIds = new Set<string>();
+				for (const m of allTournMatches) {
+					opponentIds.add(m.team_a_id === teamId ? m.team_b_id : m.team_a_id);
+				}
+
+				const { data: opponentRows } = await supabaseServer
+					.from('teams')
+					.select('id, name')
+					.in('id', [...opponentIds].length > 0 ? [...opponentIds] : ['__none__']);
+
+				const nameMap = new Map((opponentRows ?? []).map((t) => [t.id, t.name]));
+
+				// Group by tournament
+				for (const m of allTournMatches) {
+					const tourn = tournamentMap.get(m.tournament_id);
+					const key = (tourn?.name ?? '') + (tourn?.date ?? '');
+					const opponentId = m.team_a_id === teamId ? m.team_b_id : m.team_a_id;
+
+					if (!matchesByTournament[key]) {
+						matchesByTournament[key] = [];
+					}
+					matchesByTournament[key].push({
+						opponent_name: nameMap.get(opponentId) ?? opponentId,
+						won: m.winner_id === teamId,
+						set_scores: m.set_scores ? JSON.stringify(m.set_scores) : null,
+					});
+				}
+			}
 		}
 	}
 
@@ -161,6 +224,48 @@ export const load: PageServerLoad = async ({ params, url }) => {
 		}
 	}
 
+	// Fetch rank history across all runs in this season
+	let rankHistory: Array<{
+		ran_at: string;
+		agg_rank: number;
+		agg_rating: number;
+		status: string;
+	}> = [];
+
+	if (seasonId) {
+		const { data: allRuns } = await supabaseServer
+			.from('ranking_runs')
+			.select('id, ran_at, status')
+			.eq('season_id', seasonId)
+			.eq('age_group', team.age_group)
+			.order('ran_at');
+
+		if (allRuns && allRuns.length > 0) {
+			const allRunIds = allRuns.map((r) => r.id);
+			const { data: historyResults } = await supabaseServer
+				.from('ranking_results')
+				.select('ranking_run_id, agg_rank, agg_rating')
+				.eq('team_id', teamId)
+				.in('ranking_run_id', allRunIds);
+
+			const histMap = new Map(
+				(historyResults ?? []).map((r) => [r.ranking_run_id, r]),
+			);
+
+			rankHistory = allRuns
+				.filter((run) => histMap.has(run.id))
+				.map((run) => {
+					const result = histMap.get(run.id)!;
+					return {
+						ran_at: run.ran_at,
+						agg_rank: result.agg_rank ?? 0,
+						agg_rating: result.agg_rating ?? 0,
+						status: run.status,
+					};
+				});
+		}
+	}
+
 	// Fetch override for this team in this run
 	const { data: overrideRow } = await supabaseServer
 		.from('ranking_overrides')
@@ -171,6 +276,7 @@ export const load: PageServerLoad = async ({ params, url }) => {
 
 	return {
 		team,
+		clubName,
 		ranking: rankingRow
 			? {
 					algo1_rating: rankingRow.algo1_rating ?? 0,
@@ -198,7 +304,9 @@ export const load: PageServerLoad = async ({ params, url }) => {
 				}
 			: null,
 		history,
+		matchesByTournament,
 		h2h,
+		rankHistory,
 		runId,
 	};
 };

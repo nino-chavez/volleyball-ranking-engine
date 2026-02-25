@@ -8,8 +8,13 @@
 	import Button from '$lib/components/Button.svelte';
 	import Banner from '$lib/components/Banner.svelte';
 	import FreshnessIndicator from '$lib/components/FreshnessIndicator.svelte';
+	import RankingSummaryStats from '$lib/components/RankingSummaryStats.svelte';
+	import RatingDistribution from '$lib/components/charts/RatingDistribution.svelte';
+	import { computeMean, computeMedian, computeStdDev } from '$lib/ranking/stats.js';
 	import { AgeGroup } from '$lib/schemas/enums.js';
 	import { formatTimestamp } from '$lib/utils/format.js';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import { assembleExportRows } from '$lib/export/export-data.js';
 	import type { ExportMetadata } from '$lib/export/types.js';
 	import type { NormalizedTeamResult } from '$lib/ranking/types.js';
@@ -54,6 +59,22 @@
 	let overrides = $state<Record<string, OverrideData>>({});
 	let runStatus = $state<'draft' | 'finalized'>('draft');
 
+	// --- Rank Movement State ---
+	let previousRanks = $state<Record<string, number>>({});
+
+	// --- Filter URL Params ---
+	const initialSearch = page.url.searchParams.get('search') ?? '';
+	const initialRegion = page.url.searchParams.get('region') ?? '';
+
+	function handleFilterChange(search: string, region: string) {
+		const url = new URL(page.url);
+		if (search) url.searchParams.set('search', search);
+		else url.searchParams.delete('search');
+		if (region) url.searchParams.set('region', region);
+		else url.searchParams.delete('region');
+		goto(url.toString(), { replaceState: true, keepFocus: true, noScroll: true });
+	}
+
 	// --- Override Panel State ---
 	let panelOpen = $state(false);
 	let panelTeamId = $state('');
@@ -97,6 +118,12 @@
 	let contextReady = $derived(selectedSeasonId !== '' && selectedAgeGroup !== '');
 
 	const hasOverrides = $derived(Object.keys(overrides).length > 0);
+
+	// --- Summary Stats (computed client-side from results) ---
+	const allRatings = $derived(rankingResults.map((r) => r.agg_rating));
+	const summaryMean = $derived(computeMean(allRatings));
+	const summaryMedian = $derived(computeMedian(allRatings));
+	const summaryStdDev = $derived(computeStdDev(allRatings));
 	const panelExistingOverride = $derived(
 		panelTeamId && overrides[panelTeamId] ? overrides[panelTeamId] : null,
 	);
@@ -177,6 +204,7 @@
 				teams = resultsData.data.teams;
 				overrides = resultsData.data.overrides ?? {};
 				runStatus = resultsData.data.run_status ?? 'draft';
+				previousRanks = resultsData.data.previous_ranks ?? {};
 			}
 		}
 	}
@@ -231,6 +259,7 @@
 		selectedRunId = '';
 		overrides = {};
 		runStatus = 'draft';
+		previousRanks = {};
 		panelOpen = false;
 	}
 
@@ -375,12 +404,27 @@
 			</div>
 		{/if}
 
+		<!-- Summary Stats + Distribution Chart -->
+		{#if rankingResults.length > 0}
+			<RankingSummaryStats
+				mean={summaryMean}
+				median={summaryMedian}
+				stdDev={summaryStdDev}
+				teamCount={rankingResults.length}
+			/>
+			<RatingDistribution ratings={allRatings} />
+		{/if}
+
 		<RankingResultsTable
 			results={rankingResults}
 			{teams}
 			{seedingFactors}
 			rankingRunId={runSummary?.ranking_run_id ?? ''}
 			{overrides}
+			{previousRanks}
+			{initialSearch}
+			{initialRegion}
+			onfilterchange={handleFilterChange}
 			{runStatus}
 			onoverrideclick={handleOverrideClick}
 		/>

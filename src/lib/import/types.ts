@@ -102,3 +102,47 @@ export interface ImportSummaryData {
 export interface FileParserInterface<T> {
 	parse(buffer: ArrayBuffer, options?: Record<string, unknown>): ParseResult<T>;
 }
+
+/** Database row for import_sources table */
+export interface ImportSourceRow {
+	id: string;
+	name: string;
+	source_type: 'xlsx_file' | 'xlsx_url';
+	config: Record<string, unknown>;
+	season_id: string;
+	age_group: string;
+	format: ImportFormat;
+	enabled: boolean;
+	last_run_at: string | null;
+	created_at: string;
+	updated_at: string;
+}
+
+/** Database row for import_jobs table */
+export interface ImportJobRow {
+	id: string;
+	source_id: string;
+	status: 'pending' | 'running' | 'completed' | 'failed';
+	started_at: string | null;
+	completed_at: string | null;
+	rows_processed: number;
+	rows_inserted: number;
+	rows_updated: number;
+	rows_skipped: number;
+	error_message: string | null;
+	metadata: Record<string, unknown> | null;
+	created_at: string;
+	updated_at: string;
+}
+
+/** Configuration options for a source adapter */
+export interface SourceAdapterConfig {
+	/** For xlsx_url: the URL to fetch the XLSX file from */
+	url?: string;
+	/** Optional HTTP headers for authenticated URL fetches */
+	headers?: Record<string, string>;
+	/** For xlsx_file: base64 encoded file data */
+	fileData?: string;
+	/** For colley format: the ranking run to associate results with */
+	ranking_run_id?: string;
+}

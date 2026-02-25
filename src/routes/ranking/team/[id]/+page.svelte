@@ -4,11 +4,15 @@
 	import DataTable from '$lib/components/DataTable.svelte';
 	import RankBadge from '$lib/components/RankBadge.svelte';
 	import Banner from '$lib/components/Banner.svelte';
+	import ChartContainer from '$lib/components/charts/ChartContainer.svelte';
+	import LineChart from '$lib/components/charts/LineChart.svelte';
+	import TournamentMatchDetail from '$lib/components/TournamentMatchDetail.svelte';
 	import { toOrdinal, formatDate, formatTimestamp } from '$lib/utils/format.js';
 
 	let { data } = $props<{
 		data: {
-			team: { id: string; name: string; code: string; region: string; age_group: string };
+			team: { id: string; name: string; code: string; region: string; age_group: string; club_id: string | null };
+			clubName: string | null;
 			ranking: {
 				algo1_rating: number;
 				algo1_rank: number;
@@ -38,15 +42,53 @@
 				finish_position: number;
 				field_size: number;
 			}>;
+			matchesByTournament: Record<
+				string,
+				Array<{ opponent_name: string; won: boolean; set_scores?: string | null }>
+			>;
 			h2h: {
 				total_wins: number;
 				total_losses: number;
 				has_match_data: boolean;
 				opponents: Array<{ id: string; name: string; wins: number; losses: number }>;
 			};
+			rankHistory: Array<{
+				ran_at: string;
+				agg_rank: number;
+				agg_rating: number;
+				status: string;
+			}>;
 			runId: string;
 		};
 	}>();
+
+	interface RankHistoryPoint {
+		date: Date;
+		rank: number;
+		rating: number;
+		status: string;
+	}
+
+	const hasMatchData = $derived(Object.keys(data.matchesByTournament).length > 0);
+
+	const tournamentEntries = $derived(
+		data.history.map((h: { tournament_name: string; tournament_date: string; division: string; finish_position: number; field_size: number }) => {
+			const key = h.tournament_name + h.tournament_date;
+			return {
+				...h,
+				matches: data.matchesByTournament[key] ?? [],
+			};
+		}),
+	);
+
+	const rankHistoryData: RankHistoryPoint[] = $derived(
+		data.rankHistory.map((p: { ran_at: string; agg_rank: number; agg_rating: number; status: string }) => ({
+			date: new Date(p.ran_at),
+			rank: p.agg_rank,
+			rating: p.agg_rating,
+			status: p.status,
+		})),
+	);
 
 	const algorithms = $derived(
 		data.ranking
@@ -85,7 +127,7 @@
 
 <PageHeader
 	title={data.team.name}
-	subtitle="{data.team.code} | {data.team.region} | {data.team.age_group}"
+	subtitle="{data.team.code} | {data.team.region} | {data.team.age_group}{data.clubName ? ` | ${data.clubName}` : ''}"
 />
 
 <div class="space-y-6">
@@ -122,6 +164,25 @@
 		</Card>
 	{:else}
 		<Banner variant="warning">No ranking data found for this team in the selected run.</Banner>
+	{/if}
+
+	<!-- Rank History Chart -->
+	{#if rankHistoryData.length > 1}
+		<ChartContainer title="Rank History" height={280} empty={rankHistoryData.length === 0}>
+			<LineChart
+				data={rankHistoryData}
+				x="date"
+				y="rank"
+				yReverse={true}
+				yNice={false}
+				yDomain={[null, 1]}
+				height={240}
+				formatTooltip={(d) => {
+					const p = d as unknown as RankHistoryPoint;
+					return `Rank #${p.rank} (Rating: ${p.rating.toFixed(2)}) — ${formatDate(p.date.toISOString())}`;
+				}}
+			/>
+		</ChartContainer>
 	{/if}
 
 	<!-- Committee Adjustment -->
@@ -197,6 +258,8 @@
 		{/snippet}
 		{#if data.history.length === 0}
 			<p class="py-6 text-center text-text-muted">No tournament results found for this season.</p>
+		{:else if hasMatchData}
+			<TournamentMatchDetail tournaments={tournamentEntries} />
 		{:else}
 			<DataTable caption="Tournament history">
 				<thead class="bg-surface-alt">

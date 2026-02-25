@@ -11,13 +11,25 @@
 
 	const links = [
 		{ href: '/import', label: 'Import' },
+		{ href: '/import/sources', label: 'Sources' },
+		{ href: '/import/jobs', label: 'Jobs' },
 		{ href: '/ranking', label: 'Rankings' },
+		{ href: '/ranking/tournaments', label: 'Tournaments' },
+		{ href: '/ranking/clubs', label: 'Clubs' },
 		{ href: '/ranking/weights', label: 'Weights' },
 		{ href: '/settings', label: 'Settings' },
 		{ href: '/help', label: 'Help' },
 	];
 
 	function isActive(href: string): boolean {
+		if (href === '/ranking') {
+			// Exact match only — don't match /ranking/tournaments, /ranking/weights, etc.
+			return currentPath === '/ranking' || currentPath.startsWith('/ranking/team/');
+		}
+		if (href === '/import') {
+			// Exact match only — don't match /import/sources, /import/jobs
+			return currentPath === '/import';
+		}
 		return currentPath === href || currentPath.startsWith(href + '/');
 	}
 

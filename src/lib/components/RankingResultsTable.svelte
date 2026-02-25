@@ -13,6 +13,7 @@
 	import DataTable from './DataTable.svelte';
 	import TierRow from './TierRow.svelte';
 	import RankBadge from './RankBadge.svelte';
+	import RankMovement from './RankMovement.svelte';
 	import Select from './Select.svelte';
 
 	interface SeedingData {
@@ -27,6 +28,10 @@
 		seedingFactors = {},
 		rankingRunId = '',
 		overrides = {},
+		previousRanks = {},
+		initialSearch = '',
+		initialRegion = '',
+		onfilterchange,
 		runStatus: _runStatus = 'draft',
 		onoverrideclick,
 	}: {
@@ -35,6 +40,10 @@
 		seedingFactors?: Record<string, SeedingData>;
 		rankingRunId?: string;
 		overrides?: Record<string, OverrideData>;
+		previousRanks?: Record<string, number>;
+		initialSearch?: string;
+		initialRegion?: string;
+		onfilterchange?: (search: string, region: string) => void;
 		runStatus?: 'draft' | 'finalized';
 		onoverrideclick?: (teamId: string, teamName: string, aggRank: number) => void;
 	} = $props();
@@ -51,12 +60,13 @@
 		}
 	});
 
-	// --- Filter State ---
-	let searchText = $state('');
-	let regionFilter = $state('');
+	// --- Filter State (bindable for URL param sync) ---
+	let searchText = $state(initialSearch ?? '');
+	let regionFilter = $state(initialRegion ?? '');
 
 	// --- Derived ---
 	const hasSeedingData = $derived(Object.keys(seedingFactors).length > 0);
+	const hasPreviousRanks = $derived(Object.keys(previousRanks).length > 0);
 
 	const uniqueRegions = $derived(() => {
 		const regions = new SvelteSet<string>();
@@ -66,7 +76,22 @@
 		return [...regions].sort();
 	});
 
-	const regionOptions = $derived(uniqueRegions().map((r) => ({ value: r, label: r })));
+	const regionCounts = $derived(() => {
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity -- Map used as local computation, not reactive state
+		const counts = new Map<string, number>();
+		for (const r of results) {
+			const region = teams[r.team_id]?.region;
+			if (region) counts.set(region, (counts.get(region) ?? 0) + 1);
+		}
+		return counts;
+	});
+
+	const regionOptions = $derived(
+		uniqueRegions().map((r) => ({
+			value: r,
+			label: `${r} (${regionCounts().get(r) ?? 0})`,
+		})),
+	);
 
 	const finalRanks = $derived(hasOverrides ? computeFinalRanks(results, overrides) : {});
 
@@ -84,6 +109,11 @@
 
 	const displayResults = $derived(filteredAndSorted());
 	const isFiltered = $derived(searchText !== '' || regionFilter !== '');
+
+	// Notify parent of filter changes for URL sync
+	$effect(() => {
+		onfilterchange?.(searchText, regionFilter);
+	});
 
 	// --- Actions ---
 	function handleSort(key: SortKey) {
@@ -160,9 +190,18 @@
 	</div>
 
 	{#if isFiltered}
-		<p class="mb-2 text-sm text-text-muted">
-			Showing {displayResults.length} of {results.length} teams
-		</p>
+		<div class="mb-2 flex items-center gap-3">
+			<p class="text-sm text-text-muted">
+				Showing {displayResults.length} of {results.length} teams
+			</p>
+			<button
+				type="button"
+				class="rounded px-2 py-0.5 text-xs font-medium text-accent hover:bg-accent/10 focus:outline-none focus:ring-1 focus:ring-accent"
+				onclick={() => { searchText = ''; regionFilter = ''; }}
+			>
+				Clear filters
+			</button>
+		</div>
 	{/if}
 
 	<DataTable caption="Ranking results">
@@ -291,7 +330,15 @@
 						{#if hasOverrides}
 							{row.agg_rank}
 						{:else}
-							<RankBadge rank={row.agg_rank} />
+							<span class="inline-flex items-center gap-1.5">
+								<RankBadge rank={row.agg_rank} />
+								{#if hasPreviousRanks}
+									<RankMovement
+										currentRank={row.agg_rank}
+										previousRank={previousRanks[row.team_id] ?? null}
+									/>
+								{/if}
+							</span>
 						{/if}
 					</td>
 					<td class="whitespace-nowrap px-3 py-2 text-left text-sm text-text-primary">

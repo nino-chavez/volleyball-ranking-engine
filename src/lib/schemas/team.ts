@@ -10,6 +10,7 @@ export const teamSchema = z.object({
 	code: z.string().min(1),
 	region: z.string().min(1),
 	age_group: AgeGroup,
+	club_id: uuidSchema.nullable().optional(),
 	created_at: datetimeSchema,
 	updated_at: datetimeSchema,
 });

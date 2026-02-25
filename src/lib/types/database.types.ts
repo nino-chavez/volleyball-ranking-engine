@@ -52,6 +52,7 @@ export interface Database {
 					code: string;
 					region: string;
 					age_group: Database['public']['Enums']['age_group_enum'];
+					club_id: string | null;
 					created_at: string;
 					updated_at: string;
 				};
@@ -61,6 +62,7 @@ export interface Database {
 					code: string;
 					region: string;
 					age_group: Database['public']['Enums']['age_group_enum'];
+					club_id?: string | null;
 					created_at?: string;
 					updated_at?: string;
 				};
@@ -70,6 +72,42 @@ export interface Database {
 					code?: string;
 					region?: string;
 					age_group?: Database['public']['Enums']['age_group_enum'];
+					club_id?: string | null;
+					created_at?: string;
+					updated_at?: string;
+				};
+				Relationships: [
+					{
+						foreignKeyName: 'teams_club_id_fkey';
+						columns: ['club_id'];
+						isOneToOne: false;
+						referencedRelation: 'clubs';
+						referencedColumns: ['id'];
+					},
+				];
+			};
+			clubs: {
+				Row: {
+					id: string;
+					name: string;
+					region: string | null;
+					website: string | null;
+					created_at: string;
+					updated_at: string;
+				};
+				Insert: {
+					id?: string;
+					name: string;
+					region?: string | null;
+					website?: string | null;
+					created_at?: string;
+					updated_at?: string;
+				};
+				Update: {
+					id?: string;
+					name?: string;
+					region?: string | null;
+					website?: string | null;
 					created_at?: string;
 					updated_at?: string;
 				};
@@ -440,6 +478,112 @@ export interface Database {
 						columns: ['team_id'];
 						isOneToOne: false;
 						referencedRelation: 'teams';
+						referencedColumns: ['id'];
+					},
+				];
+			};
+			import_sources: {
+				Row: {
+					id: string;
+					name: string;
+					source_type: 'xlsx_file' | 'xlsx_url';
+					config: Json;
+					season_id: string;
+					age_group: Database['public']['Enums']['age_group_enum'];
+					format: 'finishes' | 'colley';
+					enabled: boolean;
+					last_run_at: string | null;
+					created_at: string;
+					updated_at: string;
+				};
+				Insert: {
+					id?: string;
+					name: string;
+					source_type: 'xlsx_file' | 'xlsx_url';
+					config?: Json;
+					season_id: string;
+					age_group: Database['public']['Enums']['age_group_enum'];
+					format?: 'finishes' | 'colley';
+					enabled?: boolean;
+					last_run_at?: string | null;
+					created_at?: string;
+					updated_at?: string;
+				};
+				Update: {
+					id?: string;
+					name?: string;
+					source_type?: 'xlsx_file' | 'xlsx_url';
+					config?: Json;
+					season_id?: string;
+					age_group?: Database['public']['Enums']['age_group_enum'];
+					format?: 'finishes' | 'colley';
+					enabled?: boolean;
+					last_run_at?: string | null;
+					created_at?: string;
+					updated_at?: string;
+				};
+				Relationships: [
+					{
+						foreignKeyName: 'import_sources_season_id_fkey';
+						columns: ['season_id'];
+						isOneToOne: false;
+						referencedRelation: 'seasons';
+						referencedColumns: ['id'];
+					},
+				];
+			};
+			import_jobs: {
+				Row: {
+					id: string;
+					source_id: string;
+					status: 'pending' | 'running' | 'completed' | 'failed';
+					started_at: string | null;
+					completed_at: string | null;
+					rows_processed: number;
+					rows_inserted: number;
+					rows_updated: number;
+					rows_skipped: number;
+					error_message: string | null;
+					metadata: Json | null;
+					created_at: string;
+					updated_at: string;
+				};
+				Insert: {
+					id?: string;
+					source_id: string;
+					status?: 'pending' | 'running' | 'completed' | 'failed';
+					started_at?: string | null;
+					completed_at?: string | null;
+					rows_processed?: number;
+					rows_inserted?: number;
+					rows_updated?: number;
+					rows_skipped?: number;
+					error_message?: string | null;
+					metadata?: Json | null;
+					created_at?: string;
+					updated_at?: string;
+				};
+				Update: {
+					id?: string;
+					source_id?: string;
+					status?: 'pending' | 'running' | 'completed' | 'failed';
+					started_at?: string | null;
+					completed_at?: string | null;
+					rows_processed?: number;
+					rows_inserted?: number;
+					rows_updated?: number;
+					rows_skipped?: number;
+					error_message?: string | null;
+					metadata?: Json | null;
+					created_at?: string;
+					updated_at?: string;
+				};
+				Relationships: [
+					{
+						foreignKeyName: 'import_jobs_source_id_fkey';
+						columns: ['source_id'];
+						isOneToOne: false;
+						referencedRelation: 'import_sources';
 						referencedColumns: ['id'];
 					},
 				];

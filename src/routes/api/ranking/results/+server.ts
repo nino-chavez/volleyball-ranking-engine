@@ -72,12 +72,39 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 			};
 		}
 
-		// Fetch run status
+		// Fetch run status and context (season_id, age_group)
 		const { data: runRow } = await supabaseServer
 			.from('ranking_runs')
-			.select('status')
+			.select('status, season_id, age_group, ran_at')
 			.eq('id', rankingRunId)
 			.single();
+
+		// Look up previous finalized run for rank movement indicators
+		const previousRanks: Record<string, number> = {};
+		if (runRow?.season_id && runRow?.age_group) {
+			const { data: prevRun } = await supabaseServer
+				.from('ranking_runs')
+				.select('id')
+				.eq('season_id', runRow.season_id)
+				.eq('age_group', runRow.age_group)
+				.eq('status', 'finalized')
+				.neq('id', rankingRunId)
+				.lt('ran_at', runRow.ran_at)
+				.order('ran_at', { ascending: false })
+				.limit(1)
+				.maybeSingle();
+
+			if (prevRun) {
+				const { data: prevResults } = await supabaseServer
+					.from('ranking_results')
+					.select('team_id, agg_rank')
+					.eq('ranking_run_id', prevRun.id);
+
+				for (const pr of prevResults ?? []) {
+					previousRanks[pr.team_id] = pr.agg_rank ?? 0;
+				}
+			}
+		}
 
 		return json({
 			success: true,
@@ -100,6 +127,7 @@ export const GET: RequestHandler = async ({ url, locals }) => {
 				teams: teamsMap,
 				overrides: overridesMap,
 				run_status: runRow?.status ?? 'draft',
+				previous_ranks: previousRanks,
 			},
 		});
 	} catch (err) {
